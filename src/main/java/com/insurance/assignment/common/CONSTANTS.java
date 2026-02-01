@@ -5,4 +5,9 @@ public class CONSTANTS {
         final Integer STATUS_SUCCESS = 1;
         final Integer STATUS_FAIL = 0;
     }
+
+    public static interface POLICY_STATUS {
+        final Integer ACTIVE = 1;
+        final Integer INACTIVE = 0;
+    }
 }
