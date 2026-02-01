@@ -1,0 +1,36 @@
+server:
+  port: 8584
+
+spring:
+  application:
+    name: assignment
+  datasource:
+    url: jdbc:mariadb://localhost:8083/patient_db
+    username: project
+    password: project
+    driverClassName: org.mariadb.jdbc.Driver
+    poolName: mariadb
+    maximumPoolSize: 100
+    minimumIdle: 5
+    autoCommit: true
+    idleTimeout: 600000       # 10 phút
+    connectionTimeout: 30000  # 30 giây
+    maxLifetime: 1800000      # 30 phút
+    keepaliveTime: 300000     # 5 phút
+    validationTimeout: 5000   # 5 giây
+    connectionTestQuery: SELECT 1
+    register-mbeans: false
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MariaDBDialect
+  messages:
+    basename: i18n/messages
+    encoding: UTF-8
+    default-locale: en
+
+logging:
+  config: 'conf/log4j2.xml'
