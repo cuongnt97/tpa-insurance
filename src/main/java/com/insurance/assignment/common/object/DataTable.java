@@ -1,25 +1,17 @@
 package com.insurance.assignment.common.object;
 
 
-import org.springframework.data.domain.Page;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+@Data
+@AllArgsConstructor
 public class DataTable {
-    private final Long totalElements;
-    private final int totalPages;
-
     private List<?> content;
-
-    public DataTable(Page<?> page) {
-        this.totalElements = page.getTotalElements();
-        this.totalPages = page.getTotalPages();
-        this.content = content;
-    }
-
-    public DataTable(Long totalElements, int totalPages, List<?> content) {
-        this.totalElements = totalElements;
-        this.totalPages = totalPages;
-        this.content = content;
-    }
+    private Long total;
+    private int limit;
+    private int offset;
 }

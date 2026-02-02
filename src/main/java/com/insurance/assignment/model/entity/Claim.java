@@ -22,7 +22,7 @@ public class Claim {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @JoinColumn(name = "policy_id", nullable = false)
+    @Column(name = "policy_id", nullable = false)
     private Long policyId;
 
     @Column(name = "claim_number", nullable = false, unique = true)

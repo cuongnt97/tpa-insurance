@@ -6,19 +6,27 @@ import com.insurance.assignment.common.enumvalue.ClaimStatus;
 import com.insurance.assignment.common.exception.customexception.BusinessException;
 import com.insurance.assignment.common.exception.customexception.InactiveException;
 import com.insurance.assignment.common.exception.customexception.RecordNotFoundException;
+import com.insurance.assignment.common.object.DataTable;
 import com.insurance.assignment.model.dto.ClaimResponse;
 import com.insurance.assignment.model.dto.CreateClaimRequest;
 import com.insurance.assignment.model.entity.Claim;
 import com.insurance.assignment.model.entity.Policy;
 import com.insurance.assignment.repository.ClaimRepository;
 import jakarta.transaction.Transactional;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Year;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -74,5 +82,17 @@ public class ClaimService {
                 .description(entity.getDescription())
                 .createdAt(entity.getCreatedAt())
                 .build();
+    }
+
+    public DataTable getListClaims(Long policyId, ClaimStatus status, int offset, int limit) {
+        int page = offset / limit;
+        Pageable pageable = PageRequest.of(page, limit, Sort.by("createdAt").descending());
+
+        Page<Claim> pageResult = claimRepository.findClaims(policyId, status, pageable);
+        List<ClaimResponse> data = pageResult.getContent()
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+        return new DataTable(data, pageResult.getTotalElements(), limit, offset);
     }
 }

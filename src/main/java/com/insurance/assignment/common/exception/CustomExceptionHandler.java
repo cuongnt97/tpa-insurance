@@ -9,6 +9,9 @@ import com.insurance.assignment.common.exception.customexception.DuplicatedExcep
 import com.insurance.assignment.common.exception.customexception.InactiveException;
 import com.insurance.assignment.common.exception.customexception.RecordNotFoundException;
 import com.insurance.assignment.common.response.MessageResponse;
+import jakarta.validation.ConstraintDeclarationException;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpHeaders;
@@ -18,7 +21,10 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -88,6 +94,26 @@ public class CustomExceptionHandler {
         String message = ex.getMessage();
         MessageResponse response = new MessageResponse(CONSTANTS.HTTP_RESPONSE.STATUS_FAIL, message);
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<MessageResponse> handleMethodValidation(
+            HandlerMethodValidationException ex) {
+
+        List<String> messages = new ArrayList<>();
+
+        ex.getParameterValidationResults().forEach(result ->
+                result.getResolvableErrors()
+                        .forEach(err -> messages.add(err.getDefaultMessage()))
+        );
+
+        ex.getBeanResults().forEach(result ->
+                result.getResolvableErrors()
+                        .forEach(err -> messages.add(err.getDefaultMessage()))
+        );
+
+        return new ResponseEntity<>(new MessageResponse(messages, CONSTANTS.HTTP_RESPONSE.STATUS_FAIL), HttpStatus.BAD_REQUEST);
     }
 
     /// Global exception

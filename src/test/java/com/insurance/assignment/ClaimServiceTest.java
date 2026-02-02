@@ -7,6 +7,7 @@ import com.insurance.assignment.common.enumvalue.ClaimType;
 import com.insurance.assignment.common.exception.customexception.BusinessException;
 import com.insurance.assignment.common.exception.customexception.InactiveException;
 import com.insurance.assignment.common.exception.customexception.RecordNotFoundException;
+import com.insurance.assignment.common.object.DataTable;
 import com.insurance.assignment.model.dto.ClaimResponse;
 import com.insurance.assignment.model.dto.CreateClaimRequest;
 import com.insurance.assignment.model.entity.Claim;
@@ -20,16 +21,22 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -140,5 +147,29 @@ class ClaimServiceTest {
                 .hasMessageContaining(I18N.getMessage("error.claim.notfound", claimId));
 
         Mockito.verify(claimRepository).findById(claimId);
+    }
+
+    @Test
+    void listClaims_success() {
+        // given
+        Claim claim = Claim.builder()
+                .id(1L)
+                .policyId(10L)
+                .claimNumber("CLM-001")
+                .claimDate(LocalDate.now())
+                .claimAmount(BigDecimal.valueOf(1_000))
+                .claimStatus(ClaimStatus.SUBMITTED)
+                .claimType(ClaimType.HOSPITALIZATION)
+                .build();
+
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Claim> page = new PageImpl<>(List.of(claim), pageable, 1);
+        Mockito.when(claimRepository.findClaims(eq(10L), eq(ClaimStatus.SUBMITTED), any(Pageable.class))).thenReturn(page);
+        DataTable result = claimService.getListClaims(10L, ClaimStatus.SUBMITTED, 0, 10);
+
+        assertEquals(1, result.getTotal());
+        ClaimResponse resp = (ClaimResponse) result.getContent().get(0);
+        assertEquals(1L, resp.getClaimId());
+        assertEquals("CLM-001", resp.getClaimNumber());
     }
 }

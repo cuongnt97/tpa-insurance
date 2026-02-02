@@ -25,5 +25,6 @@ public class MessageResponse extends BaseResponse {
 
     public MessageResponse(List<String> messages, Integer status) {
         this.messages = messages;
+        this.status = status;
     }
 }
