@@ -8,6 +8,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ObjectResponse extends BaseResponse{
-    private Object object;
+    private Object data;
     private String message;
 }

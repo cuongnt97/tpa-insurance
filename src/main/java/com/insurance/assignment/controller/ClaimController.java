@@ -2,6 +2,7 @@ package com.insurance.assignment.controller;
 
 import com.insurance.assignment.common.config.I18N;
 import com.insurance.assignment.common.response.ObjectResponse;
+import com.insurance.assignment.model.dto.ClaimResponse;
 import com.insurance.assignment.model.dto.CreateClaimRequest;
 import com.insurance.assignment.model.entity.Claim;
 import com.insurance.assignment.service.ClaimService;
@@ -26,5 +27,12 @@ public class ClaimController {
         Claim claim = claimService.createClaim(req);
         ObjectResponse obj = new ObjectResponse(claim, I18N.getMessage("claim.created"));
         return new ResponseEntity(obj, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/{claimId}")
+    public ResponseEntity getClaimById(@PathVariable Long claimId) {
+        ClaimResponse claimResponse = claimService.getClaimById(claimId);
+        ObjectResponse obj = new ObjectResponse(claimResponse, I18N.getMessage("action.success"));
+        return new ResponseEntity(obj, HttpStatus.OK);
     }
 }

@@ -6,6 +6,7 @@ import com.insurance.assignment.common.enumvalue.ClaimStatus;
 import com.insurance.assignment.common.exception.customexception.BusinessException;
 import com.insurance.assignment.common.exception.customexception.InactiveException;
 import com.insurance.assignment.common.exception.customexception.RecordNotFoundException;
+import com.insurance.assignment.model.dto.ClaimResponse;
 import com.insurance.assignment.model.dto.CreateClaimRequest;
 import com.insurance.assignment.model.entity.Claim;
 import com.insurance.assignment.model.entity.Policy;
@@ -50,5 +51,28 @@ public class ClaimService {
 
     private String generateClaimNumber() {
         return "CLM-" + Year.now().getValue() + "-" + UUID.randomUUID().toString().substring(0, 6);
+    }
+
+    public ClaimResponse getClaimById(Long claimId) {
+
+        Claim claim = claimRepository.findById(claimId)
+                .orElseThrow(() -> new RecordNotFoundException(I18N.getMessage("error.claim.notfound", claimId)));
+
+        return mapToResponse(claim);
+    }
+
+    private ClaimResponse mapToResponse(Claim entity) {
+        return ClaimResponse.builder()
+                .claimId(entity.getId())
+                .policyId(entity.getPolicyId())
+                .claimNumber(entity.getClaimNumber())
+                .claimDate(entity.getClaimDate())
+                .claimAmount(entity.getClaimAmount())
+                .approvedAmount(entity.getApprovedAmount())
+                .claimStatus(entity.getClaimStatus())
+                .claimType(entity.getClaimType())
+                .description(entity.getDescription())
+                .createdAt(entity.getCreatedAt())
+                .build();
     }
 }

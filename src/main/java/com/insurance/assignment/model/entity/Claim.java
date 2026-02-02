@@ -3,14 +3,20 @@ package com.insurance.assignment.model.entity;
 import com.insurance.assignment.common.enumvalue.ClaimStatus;
 import com.insurance.assignment.common.enumvalue.ClaimType;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
+@Builder
 @Data
 @Entity(name = "claim")
+@NoArgsConstructor
+@AllArgsConstructor
 public class Claim {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
