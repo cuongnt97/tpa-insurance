@@ -7,6 +7,7 @@ import com.insurance.assignment.common.response.DataTableResponse;
 import com.insurance.assignment.common.response.ObjectResponse;
 import com.insurance.assignment.model.dto.ClaimResponse;
 import com.insurance.assignment.model.dto.CreateClaimRequest;
+import com.insurance.assignment.model.dto.UpdateClaimRequest;
 import com.insurance.assignment.model.entity.Claim;
 import com.insurance.assignment.service.ClaimService;
 import jakarta.validation.constraints.Max;
@@ -29,7 +30,7 @@ public class ClaimController {
 
     @PostMapping("")
     public ResponseEntity createClaim(@Valid @RequestBody CreateClaimRequest req) {
-        Claim claim = claimService.createClaim(req);
+        ClaimResponse claim = claimService.createClaim(req);
         ObjectResponse obj = new ObjectResponse(claim, I18N.getMessage("claim.created"));
         return new ResponseEntity(obj, HttpStatus.CREATED);
     }
@@ -49,5 +50,12 @@ public class ClaimController {
         DataTable dataTable = claimService.getListClaims(policyId, status, offset, limit);
         DataTableResponse response = new DataTableResponse(dataTable, I18N.getMessage("action.success"));
         return new ResponseEntity(response, HttpStatus.OK);
+    }
+
+    @PatchMapping("/{claimId}")
+    public ResponseEntity updateStatus(@PathVariable Long claimId, @Valid @RequestBody UpdateClaimRequest req) {
+        ClaimResponse claimResponse = claimService.updateStatus(claimId, req);
+        ObjectResponse obj = new ObjectResponse(claimResponse, I18N.getMessage("action.success"));
+        return new ResponseEntity(obj, HttpStatus.OK);
     }
 }

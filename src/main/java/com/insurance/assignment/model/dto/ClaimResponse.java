@@ -22,4 +22,5 @@ public class ClaimResponse {
     private ClaimType claimType;
     private String description;
     private Instant createdAt;
+    private String note;
 }

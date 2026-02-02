@@ -51,4 +51,6 @@ public class Claim {
     @Column(name = "created_at", updatable = false)
     private Instant createdAt = Instant.now();
 
+    @Column(name = "note")
+    private String note;
 }

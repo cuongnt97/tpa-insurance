@@ -9,14 +9,12 @@ import com.insurance.assignment.common.exception.customexception.RecordNotFoundE
 import com.insurance.assignment.common.object.DataTable;
 import com.insurance.assignment.model.dto.ClaimResponse;
 import com.insurance.assignment.model.dto.CreateClaimRequest;
+import com.insurance.assignment.model.dto.UpdateClaimRequest;
 import com.insurance.assignment.model.entity.Claim;
 import com.insurance.assignment.model.entity.Policy;
 import com.insurance.assignment.repository.ClaimRepository;
 import jakarta.transaction.Transactional;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -36,7 +34,7 @@ public class ClaimService {
     private final PolicyService policyService;
 
     @Transactional
-    public Claim createClaim(CreateClaimRequest req) {
+    public ClaimResponse createClaim(CreateClaimRequest req) {
         Policy policy = policyService.findById(req.getPolicyId());
         if (policy == null) {
             throw new RecordNotFoundException(I18N.getMessage("error.policy.notfound", req.getPolicyId()));
@@ -53,8 +51,7 @@ public class ClaimService {
         claim.setClaimType(req.getClaimType());
         claim.setDescription(req.getDescription());
         claim.setCreatedAt(Instant.now());
-
-        return claimRepository.save(claim);
+        return mapToResponse(claimRepository.save(claim));
     }
 
     private String generateClaimNumber() {
@@ -81,6 +78,7 @@ public class ClaimService {
                 .claimType(entity.getClaimType())
                 .description(entity.getDescription())
                 .createdAt(entity.getCreatedAt())
+                .note(entity.getNote())
                 .build();
     }
 
@@ -94,5 +92,40 @@ public class ClaimService {
                 .map(this::mapToResponse)
                 .toList();
         return new DataTable(data, pageResult.getTotalElements(), limit, offset);
+    }
+
+    @Transactional
+    public ClaimResponse updateStatus(Long claimId, UpdateClaimRequest req) {
+        Claim claim = claimRepository.findById(claimId)
+                .orElseThrow(() -> new RecordNotFoundException(I18N.getMessage("error.claim.notfound", claimId)));
+
+        validateStatusTransition(claim, req);
+        validateApprovedAmount(claim, req);
+
+        claim.setClaimStatus(req.getNewStatus());
+        claim.setApprovedAmount(req.getApprovedAmount());
+        claim.setNote(req.getNote());
+
+        return mapToResponse(claimRepository.save(claim));
+    }
+
+    private void validateStatusTransition(Claim claim, UpdateClaimRequest req) {
+        if (claim.getClaimStatus().isTerminal()) {
+            throw new InactiveException(I18N.getMessage("error.claim.status.terminal"));
+        }
+        if (ClaimStatus.SUBMITTED.equals(claim.getClaimStatus()) &&
+                (ClaimStatus.APPROVED.equals(req.getNewStatus()) ||
+                        ClaimStatus.REJECTED.equals(req.getNewStatus()))) {
+            return;
+        }
+        throw new BusinessException(I18N.getMessage("error.claim.status.transaction.invalid"));
+    }
+
+    private void validateApprovedAmount(Claim claim, UpdateClaimRequest req) {
+        if (ClaimStatus.APPROVED.equals(req.getNewStatus())) {
+            if (req.getApprovedAmount().compareTo(claim.getClaimAmount()) > 0) {
+                throw new BusinessException(I18N.getMessage("error.claim.approvedAmount.exceeds"));
+            }
+        }
     }
 }

@@ -10,6 +10,7 @@ import com.insurance.assignment.common.exception.customexception.RecordNotFoundE
 import com.insurance.assignment.common.object.DataTable;
 import com.insurance.assignment.model.dto.ClaimResponse;
 import com.insurance.assignment.model.dto.CreateClaimRequest;
+import com.insurance.assignment.model.dto.UpdateClaimRequest;
 import com.insurance.assignment.model.entity.Claim;
 import com.insurance.assignment.model.entity.Policy;
 import com.insurance.assignment.repository.ClaimRepository;
@@ -67,7 +68,7 @@ class ClaimServiceTest {
         when(claimRepository.save(any(Claim.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
 
-        Claim result = claimService.createClaim(req);
+        ClaimResponse result = claimService.createClaim(req);
 
         assertNotNull(result);
         assertEquals(ClaimStatus.SUBMITTED, result.getClaimStatus());
@@ -151,7 +152,6 @@ class ClaimServiceTest {
 
     @Test
     void listClaims_success() {
-        // given
         Claim claim = Claim.builder()
                 .id(1L)
                 .policyId(10L)
@@ -171,5 +171,141 @@ class ClaimServiceTest {
         ClaimResponse resp = (ClaimResponse) result.getContent().get(0);
         assertEquals(1L, resp.getClaimId());
         assertEquals("CLM-001", resp.getClaimNumber());
+    }
+
+    @Test
+    void updateStatus_submittedToApproved_success() {
+        Long claimId = 1L;
+
+        Claim claim = Claim.builder()
+                .id(claimId)
+                .policyId(10L)
+                .claimNumber("CLM-2025-000123")
+                .claimStatus(ClaimStatus.SUBMITTED)
+                .claimAmount(BigDecimal.valueOf(5_000_000))
+                .build();
+
+        UpdateClaimRequest req = new UpdateClaimRequest();
+        req.setNewStatus(ClaimStatus.APPROVED);
+        req.setApprovedAmount(BigDecimal.valueOf(4_500_000));
+        req.setNote("approve test");
+
+        when(claimRepository.findById(claimId))
+                .thenReturn(Optional.of(claim));
+
+        when(claimRepository.save(any(Claim.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        ClaimResponse response = claimService.updateStatus(claimId, req);
+
+        assertNotNull(response);
+        assertEquals(claimId, response.getClaimId());
+        assertEquals(ClaimStatus.APPROVED, response.getClaimStatus());
+        assertEquals(BigDecimal.valueOf(4_500_000), response.getApprovedAmount());
+
+        verify(claimRepository).findById(claimId);
+        verify(claimRepository).save(claim);
+    }
+
+    @Test
+    void updateStatus_claimNotFound() {
+        Long claimId = 1L;
+        UpdateClaimRequest req = new UpdateClaimRequest();
+        req.setNewStatus(ClaimStatus.APPROVED);
+
+        when(claimRepository.findById(claimId))
+                .thenReturn(Optional.empty());
+
+        RecordNotFoundException ex = assertThrows(
+                RecordNotFoundException.class,
+                () -> claimService.updateStatus(claimId, req)
+        );
+
+        assertEquals(I18N.getMessage("error.claim.notfound", claimId), ex.getMessage());
+    }
+
+    @Test
+    void updateStatus_claimAlreadyApproved() {
+        Claim claim = new Claim();
+        claim.setId(1L);
+        claim.setClaimStatus(ClaimStatus.APPROVED);
+
+        UpdateClaimRequest req = new UpdateClaimRequest();
+        req.setNewStatus(ClaimStatus.APPROVED);
+        req.setApprovedAmount(BigDecimal.valueOf(1000));
+
+        when(claimRepository.findById(1L)).thenReturn(Optional.of(claim));
+
+        InactiveException ex = assertThrows(
+                InactiveException.class,
+                () -> claimService.updateStatus(1L, req)
+        );
+
+        assertEquals(I18N.getMessage("error.claim.status.terminal"), ex.getMessage());
+    }
+
+    @Test
+    void updateStatus_claimAlreadyRejected() {
+        Claim claim = new Claim();
+        claim.setId(1L);
+        claim.setClaimStatus(ClaimStatus.REJECTED);
+
+        UpdateClaimRequest req = new UpdateClaimRequest();
+        req.setNewStatus(ClaimStatus.APPROVED);
+        req.setApprovedAmount(BigDecimal.valueOf(1000));
+
+        when(claimRepository.findById(1L)).thenReturn(Optional.of(claim));
+
+        InactiveException ex = assertThrows(
+                InactiveException.class,
+                () -> claimService.updateStatus(1L, req)
+        );
+
+        assertEquals(I18N.getMessage("error.claim.status.terminal"), ex.getMessage());
+    }
+
+    @Test
+    void updateStatus_invalidTransition_throw400() {
+        Claim claim = new Claim();
+        claim.setId(1L);
+        claim.setClaimStatus(ClaimStatus.SUBMITTED);
+
+        UpdateClaimRequest req = new UpdateClaimRequest();
+        req.setNewStatus(ClaimStatus.SUBMITTED);
+
+        when(claimRepository.findById(1L))
+                .thenReturn(Optional.of(claim));
+
+        BusinessException ex = assertThrows(
+                BusinessException.class,
+                () -> claimService.updateStatus(1L, req)
+        );
+
+        assertEquals(I18N.getMessage("error.claim.status.transaction.invalid"), ex.getMessage());
+    }
+
+    @Test
+    void updateStatus_approvedAmountGreaterThanClaimAmount_throw400() {
+        // given
+        Claim claim = new Claim();
+        claim.setId(1L);
+        claim.setClaimStatus(ClaimStatus.SUBMITTED);
+        claim.setClaimAmount(BigDecimal.valueOf(5_000_000));
+
+        UpdateClaimRequest req = new UpdateClaimRequest();
+        req.setNewStatus(ClaimStatus.APPROVED);
+        req.setApprovedAmount(BigDecimal.valueOf(6_000_000));
+
+        when(claimRepository.findById(1L))
+                .thenReturn(Optional.of(claim));
+
+        BusinessException ex = assertThrows(
+                BusinessException.class,
+                () -> claimService.updateStatus(1L, req)
+        );
+
+        assertEquals(I18N.getMessage("error.claim.approvedAmount.exceeds"), ex.getMessage()
+        );
+
     }
 }

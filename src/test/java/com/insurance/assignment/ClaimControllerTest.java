@@ -8,8 +8,8 @@ import com.insurance.assignment.common.exception.customexception.RecordNotFoundE
 import com.insurance.assignment.common.object.DataTable;
 import com.insurance.assignment.controller.ClaimController;
 import com.insurance.assignment.model.dto.ClaimResponse;
+import com.insurance.assignment.model.dto.UpdateClaimRequest;
 import com.insurance.assignment.service.ClaimService;
-import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,10 +18,8 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -29,7 +27,11 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
 
+import static org.hamcrest.Matchers.hasItem;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -72,7 +74,7 @@ class ClaimControllerTest {
                 .createdAt(Instant.parse("2025-01-29T10:30:00Z"))
                 .build();
 
-        Mockito.when(claimService.getClaimById(123L))
+        when(claimService.getClaimById(123L))
                 .thenReturn(response);
 
         mockMvc.perform(get("/api/claims/{id}", 123))
@@ -91,7 +93,7 @@ class ClaimControllerTest {
     void getClaimById_notFound() throws Exception {
 
         Long claimId = 123L;
-        Mockito.when(claimService.getClaimById(claimId))
+        when(claimService.getClaimById(claimId))
                 .thenThrow(new RecordNotFoundException(I18N.getMessage("error.claim.notfound", claimId)));
 
         mockMvc.perform(get("/api/claims/{id}", claimId))
@@ -119,7 +121,7 @@ class ClaimControllerTest {
 
         DataTable dataTable = new DataTable(List.of(response), 1L, 10, 0);
 
-        Mockito.when(claimService.getListClaims(
+        when(claimService.getListClaims(
                 eq(10L),
                 eq(ClaimStatus.SUBMITTED),
                 eq(0),
@@ -161,5 +163,86 @@ class ClaimControllerTest {
                 .andExpect(jsonPath("$.messages").isArray())
                 .andExpect(jsonPath("$.messages", hasItem(limitNegativeMessage)))
                 .andExpect(jsonPath("$.messages", hasItem(offsetNegativeMessage)));
+    }
+
+    @Test
+    void updateStatus_success() throws Exception {
+        Long claimId = 1L;
+
+        ClaimResponse response = ClaimResponse.builder()
+                .claimId(claimId)
+                .claimStatus(ClaimStatus.APPROVED)
+                .approvedAmount(BigDecimal.valueOf(4_500_000))
+                .build();
+        UpdateClaimRequest req = new UpdateClaimRequest();
+        req.setNewStatus(ClaimStatus.APPROVED);
+        req.setApprovedAmount(BigDecimal.valueOf(4_500_000));
+        req.setNote("unit test controller");
+
+        when(claimService.updateStatus(eq(claimId), any(UpdateClaimRequest.class)))
+                .thenReturn(response);
+
+        String body = """
+        {
+          "newStatus": "APPROVED",
+          "approvedAmount": 4500000,
+          "note": "unit test controller"
+        }
+        """;
+
+        mockMvc.perform(patch("/api/claims/{claimId}", claimId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(CONSTANTS.HTTP_RESPONSE.STATUS_SUCCESS))
+                .andExpect(jsonPath("$.data.claimId").value(1))
+                .andExpect(jsonPath("$.data.claimStatus").value("APPROVED"))
+                .andExpect(jsonPath("$.data.approvedAmount").value(4500000));
+
+        verify(claimService)
+                .updateStatus(eq(claimId), any(UpdateClaimRequest.class));
+    }
+
+    @Test
+    void updateStatus_validationError() throws Exception {
+        String body = """
+        {
+          "newStatus": "APPROVED",
+          "note": "Approved by underwriter"
+        }
+        """;
+
+        mockMvc.perform(patch("/api/claims/{claimId}", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(CONSTANTS.HTTP_RESPONSE.STATUS_FAIL))
+                .andExpect(jsonPath("$.messages").isArray())
+                .andExpect(jsonPath("$.messages").isNotEmpty());
+
+        verify(claimService, never()).updateStatus(any(), any());
+    }
+
+    @Test
+    void updateStatus_claimNotFound() throws Exception {
+        String claimNotFound = messageSource.getMessage("error.claim.notfound",new Object[]{1L}, Locale.getDefault());
+        when(claimService.updateStatus(eq(1L), any()))
+                .thenThrow(new RecordNotFoundException(claimNotFound));
+
+        String body = """
+        {
+          "newStatus": "APPROVED",
+          "approvedAmount": 4500000
+        }
+        """;
+
+        mockMvc.perform(patch("/api/claims/{claimId}", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andDo(print())
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(CONSTANTS.HTTP_RESPONSE.STATUS_FAIL))
+                .andExpect(jsonPath("$.message").value(claimNotFound));
     }
 }
