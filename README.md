@@ -67,7 +67,7 @@ The application will run at `http://localhost:8584` (default).
 
 ## Configuration
 
-The main configuration file `application.yaml` and the log configuration `log4j2.xml` are located in the `src/main/resources/conf/` directory.
+The main configuration file `application.yaml` and the log configuration `log4j2.xml` are located in the `conf/` directory.
 
 *   **`application.yaml`**: Contains settings for the port, database, etc.
 *   **`log4j2.xml`**: Defines how and where application logs are stored.
@@ -78,3 +78,5 @@ Here are some example API endpoints (if applicable):
 
 *   `POST /api/claim`: Create a claim.
 *   `GET /api/claims/{claimId}`: Retrieve a claim.
+*   `GET /api/claims?limit={limit}&offset={offset}&claimStatus={claimStatus}&policyId={policyId}`: Retrive a list of claims with filter
+*   `PATCH /api/claims/{claimId}`: Update status a claim
