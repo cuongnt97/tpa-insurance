@@ -4,6 +4,7 @@ import com.insurance.assignment.common.CONSTANTS;
 import com.insurance.assignment.common.enumvalue.ClaimStatus;
 import com.insurance.assignment.common.enumvalue.ClaimType;
 import com.insurance.assignment.common.exception.customexception.BusinessException;
+import com.insurance.assignment.common.exception.customexception.InactiveException;
 import com.insurance.assignment.common.exception.customexception.RecordNotFoundException;
 import com.insurance.assignment.model.dto.CreateClaimRequest;
 import com.insurance.assignment.model.entity.Claim;
@@ -83,7 +84,7 @@ class ClaimServiceTest {
         req.setClaimAmount(BigDecimal.TEN);
         req.setClaimType(ClaimType.DENTAL);
 
-        assertThrows(BusinessException.class,
+        assertThrows(InactiveException.class,
                 () -> claimService.createClaim(req));
     }
 }

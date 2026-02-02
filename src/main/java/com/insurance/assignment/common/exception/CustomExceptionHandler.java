@@ -6,6 +6,7 @@ import com.insurance.assignment.common.CONSTANTS;
 import com.insurance.assignment.common.config.I18N;
 import com.insurance.assignment.common.exception.customexception.BusinessException;
 import com.insurance.assignment.common.exception.customexception.DuplicatedException;
+import com.insurance.assignment.common.exception.customexception.InactiveException;
 import com.insurance.assignment.common.exception.customexception.RecordNotFoundException;
 import com.insurance.assignment.common.response.MessageResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,13 @@ public class CustomExceptionHandler {
         String message = ex.getMessage();
         MessageResponse response = new MessageResponse(CONSTANTS.HTTP_RESPONSE.STATUS_FAIL, message);
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(InactiveException.class)
+    public final ResponseEntity<MessageResponse> handleInactiveException(InactiveException ex) {
+        String message = ex.getMessage();
+        MessageResponse response = new MessageResponse(CONSTANTS.HTTP_RESPONSE.STATUS_FAIL, message);
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(DuplicatedException.class)

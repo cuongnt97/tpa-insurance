@@ -4,6 +4,7 @@ import com.insurance.assignment.common.CONSTANTS;
 import com.insurance.assignment.common.config.I18N;
 import com.insurance.assignment.common.enumvalue.ClaimStatus;
 import com.insurance.assignment.common.exception.customexception.BusinessException;
+import com.insurance.assignment.common.exception.customexception.InactiveException;
 import com.insurance.assignment.common.exception.customexception.RecordNotFoundException;
 import com.insurance.assignment.model.dto.CreateClaimRequest;
 import com.insurance.assignment.model.entity.Claim;
@@ -32,7 +33,7 @@ public class ClaimService {
             throw new RecordNotFoundException(I18N.getMessage("error.policy.notfound", req.getPolicyId()));
         }
         if (CONSTANTS.POLICY_STATUS.INACTIVE.equals(policy.getStatus())) {
-            throw new BusinessException(I18N.getMessage("error.claim.status.inactive"));
+            throw new InactiveException(I18N.getMessage("error.claim.status.inactive"));
         }
         Claim claim = new Claim();
         claim.setPolicyId(req.getPolicyId());
